@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Collage Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        /* Responsive header */
+        header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        nav ul {
+            display: flex;
+            justify-content: center;
+            list-style-type: none;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Main content area */
+        section {
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 1200px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Canvas styles */
+        #collageCanvas {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px dashed #ccc;
+            min-height: 400px;
+            background-color: #f9f9f9;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Image styles */
+        .image {
+            position: absolute;
+            cursor: move;
+            transition: transform 0.3s ease;
+        }
+
+        .image.selected {
+            outline: 3px solid #007bff;
+            z-index: 100;
+        }
+
+        /* Crop overlay */
+        .crop-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .crop-area {
+            position: absolute;
+            border: 2px dashed white;
+            cursor: move;
+            z-index: 1001;
+        }
+
+        .crop-handle {
+            width: 10px;
+            height: 10px;
+            background: white;
+            border: 1px solid black;
+            position: absolute;
+            z-index: 1002;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        /* Buttons */
+        button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #555;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+
+            .control-group {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header and navigation remain the same -->
+
+    <section id="editing">
+        <h2>Collage Editor</h2>
+        <div id="collageCanvas"></div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="imageSize">Image Size:</label>
+                <input type="range" id="imageSize" min="50" max="500" value="200">
+                <span id="imageSizeValue">200px</span>
+            </div>
+
+            <div class="control-group">
+                <label for="zoomLevel">Zoom:</label>
+                <input type="range" id="zoomLevel" min="50" max="200" value="100">
+                <span id="zoomValue">100%</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="cropBtn">Crop Image</button>
+            <button id="applyCrop" style="display: none;">Apply Crop</button>
+            <button id="cancelCrop" style="display: none;">Cancel Crop</button>
+            <button id="saveJPG">Save as JPEG</button>
+            <button id="savePNG">Save as PNG</button>
+            <input type="file" id="imageInput" accept="image/*" multiple style="display: none;">
+            <button id="addImages">Add Images</button>
+        </div>
+    </section>
+
+    <script>
+        // Main JavaScript
+        document.addEventListener('DOMContentLoaded', function () {
+            const collageCanvas = document.getElementById('collageCanvas');
+            const imageInput = document.getElementById('imageInput');
+            const addImagesBtn = document.getElementById('addImages');
+            const imageSizeSlider = document.getElementById('imageSize');
+            const imageSizeValue = document.getElementById('imageSizeValue');
+            const zoomSlider = document.getElementById('zoomLevel');
+            const zoomValue = document.getElementById('zoomValue');
+            const cropBtn = document.getElementById('cropBtn');
+            const applyCropBtn = document.getElementById('applyCrop');
+            const cancelCropBtn = document.getElementById('cancelCrop');
+
+            let selectedImage = null;
+            let cropMode = false;
+            let cropArea = null;
+            let cropOverlay = null;
+
+            // Image upload handling
+            addImagesBtn.addEventListener('click', () => imageInput.click());
+
+            imageInput.addEventListener('change', function (e) {
+                const files = Array.from(e.target.files);
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        addImageToCanvas(e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+
+            function addImageToCanvas(src) {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'image';
+                img.style.width = imageSizeSlider.value + 'px';
+                img.style.height = 'auto';
+                img.style.left = Math.random() * (collageCanvas.offsetWidth - 200) + 'px';
+                img.style.top = Math.random() * (collageCanvas.offsetHeight - 200) + 'px';
+
+                makeImageDraggable(img);
+
+                img.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectImage(img);
+                });
+
+                collageCanvas.appendChild(img);
+            }
+
+            // Image selection
+            function selectImage(img) {
+                if (selectedImage) {
+                    selectedImage.classList.remove('selected');
+                }
+                selectedImage = img;
+                selectedImage.classList.add('selected');
+            }
+
+            // Image size control
+            imageSizeSlider.addEventListener('input', function () {
+                if (selectedImage) {
+                    const size = this.value;
+                    selectedImage.style.width = size + 'px';
+                    selectedImage.style.height = 'auto';
+                    imageSizeValue.textContent = size + 'px';
+                }
+            });
+
+            // Zoom control
+            zoomSlider.addEventListener('input', function () {
+                if (selectedImage) {
+                    const zoom = this.value / 100;
+                    selectedImage.style.transform = `scale(${zoom})`;
+                    zoomValue.textContent = this.value + '%';
+                }
+            });
+
+            // Draggable functionality
+            function makeImageDraggable(element) {
+                let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+                element.onmousedown = dragMouseDown;
+
+                function dragMouseDown(e) {
+                    e.preventDefault();
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    document.onmouseup = closeDragElement;
+                    document.onmousemove = elementDrag;
+                    selectImage(element);
+                }
+
+                function elementDrag(e) {
+                    e.preventDefault();
+                    pos1 = pos3 - e.clientX;
+                    pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    element.style.top = (element.offsetTop - pos2) + "px";
+                    element.style.left = (element.offsetLeft - pos1) + "px";
+                }
+
+                function closeDragElement() {
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                }
+            }
+
+            // Crop functionality
+            cropBtn.addEventListener('click', function () {
+                if (!selectedImage) {
+                    alert('Please select an image first');
+                    return;
+                }
+
+                cropMode = !cropMode;
+                if (cropMode) {
+                    initCrop();
+                    applyCropBtn.style.display = 'inline';
+                    cancelCropBtn.style.display = 'inline';
+                } else {
+                    removeCrop();
+                }
+            });
+
+            function initCrop() {
+                cropOverlay = document.createElement('div');
+                cropOverlay.className = 'crop-overlay';
+
+                cropArea = document.createElement('div');
+                cropArea.className = 'crop-area';
+
+                // Set initial crop area size
+                const width = selectedImage.offsetWidth * 0.8;
+                const height = selectedImage.offsetHeight * 0.8;
+                cropArea.style.width = width + 'px';
+                cropArea.style.height = height + 'px';
+                cropArea.style.left = (selectedImage.offsetWidth - width) / 2 + 'px';
+                cropArea.style.top = (selectedImage.offsetHeight - height) / 2 + 'px';
+
+                selectedImage.parentElement.appendChild(cropOverlay);
+                selectedImage.parentElement.appendChild(cropArea);
+
+                makeCropAreaDraggable();
+            }
+
+            function makeCropAreaDraggable() {
+                let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+                cropArea.onmousedown = dragMouseDown;
+
+                function dragMouseDown(e) {
+                    e.preventDefault();
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    document.onmouseup = closeDragElement;
+                    document.onmousemove = elementDrag;
+                }
+
+                function elementDrag(e) {
+                    e.preventDefault();
+                    pos1 = pos3 - e.clientX;
+                    pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+
+                    const newTop = cropArea.offsetTop - pos2;
+                    const newLeft = cropArea.offsetLeft - pos1;
+
+                    cropArea.style.top = newTop + "px";
+                    cropArea.style.left = newLeft + "px";
+                }
+
+                function closeDragElement() {
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                }
+            }
+
+            applyCropBtn.addEventListener('click', function () {
+                if (!selectedImage || !cropArea) return;
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                const cropX = parseFloat(cropArea.style.left);
+                const cropY = parseFloat(cropArea.style.top);
+                const cropWidth = cropArea.offsetWidth;
+                const cropHeight = cropArea.offsetHeight;
+
+                canvas.width = cropWidth;
+                canvas.height = cropHeight;
+
+                ctx.drawImage(selectedImage,
+                    cropX, cropY, cropWidth, cropHeight,
+                    0, 0, cropWidth, cropHeight
+                );
+
+                selectedImage.src = canvas.toDataURL();
+                selectedImage.style.width = cropWidth + 'px';
+                selectedImage.style.height = cropHeight + 'px';
+
+                removeCrop();
+            });
+
+            cancelCropBtn.addEventListener('click', removeCrop);
+
+            function removeCrop() {
+                if (cropOverlay) cropOverlay.remove();
+                if (cropArea) cropArea.remove();
+                cropOverlay = null;
+                cropArea = null;
+                cropMode = false;
+                applyCropBtn.style.display = 'none';
+                cancelCropBtn.style.display = 'none';
+            }
+
+            // Save functionality
+            document.getElementById('saveJPG').addEventListener('click', () => saveCollage('image/jpeg'));
+            document.getElementById('savePNG').addEventListener('click', () => saveCollage('image/png'));
+
+            function saveCollage(type) {
+                html2canvas(collageCanvas, {
+                    backgroundColor: '#ffffff',
+                    scale: 2
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `collage.${type.split('/')[1]}`;
+                    link.href = canvas.toDataURL(type, 1.0);
+                    link.click();
+                });
+            }
+
+            // Clear canvas when clicking outside images
+            collageCanvas.addEventListener('click', function (e) {
+                if (e.target === collageCanvas) {
+                    if (selectedImage) {
+                        selectedImage.classList.remove('selected');
+                        selectedImage = null;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -182,6 +182,13 @@ document.getElementById('brightness').addEventListener('input', function (e) {
         selectedImage.style.filter = `brightness(${100 + parseInt(e.target.value)}%)`;
     }
 });
+document.getElementById('zoomLevel').addEventListener('input', function (e) {
+    const selectedImage = collageCanvas.querySelector('.selected');
+    const zoom = this.value / 100;
+    selectedImage.style.transform = `scale(${zoom})`;
+    zoomValue.textContent = this.value + '%';
+
+})
 
 document.getElementById('contrast').addEventListener('input', function (e) {
     const selectedImage = collageCanvas.querySelector('.selected');
@@ -394,24 +401,36 @@ document.getElementById('importPhotos').addEventListener('click', function () {
                 img.src = e.target.result;
                 img.className = 'image';
 
-                // Set initial size based on user input
-                img.style.width = `${imageSize}px`;
-                img.style.height = `${imageSize}px`;
+                // Calculate aspect ratio of the image
+                const imageAspectRatio = img.naturalWidth / img.naturalHeight;
+
+                // Determine which dimension needs scaling based on imageAspectRatio
+                let width, height;
+                if (imageAspectRatio > 1) { // Wider than tall
+                    width = imageSize;
+                    height = imageSize / imageAspectRatio;
+                } else { // Taller than wide or square
+                    width = imageSize * imageAspectRatio;
+                    height = imageSize;
+                }
+
+                // Set image size using calculated width and height
+                img.style.width = `${width}px`;
+                img.style.height = `${height}px`;
+
+                // Ensure image fits within size while maintaining aspect ratio
+                img.style.objectFit = 'contain';
 
                 if (currentLayout === 'freestyle' || currentLayout === 'themed') {
                     img.style.position = 'absolute';
-                    img.style.left = Math.random() * (collageCanvas.offsetWidth - imageSize) + 'px';
-                    img.style.top = Math.random() * (collageCanvas.offsetHeight - imageSize) + 'px';
+                    img.style.left = Math.random() * (collageCanvas.offsetWidth - width) + 'px';
+                    img.style.top = Math.random() * (collageCanvas.offsetHeight - height) + 'px';
                     makeImageDraggable(img);
                 }
 
                 img.addEventListener('click', function () {
-                    // Remove 'selected' class from all images
                     document.querySelectorAll('.image').forEach(i => i.classList.remove('selected'));
-                    // Add 'selected' class to clicked image
                     this.classList.add('selected');
-
-                    // Update tool values based on selected image
                     updateToolValues(this);
                 });
 
@@ -427,6 +446,7 @@ document.getElementById('importPhotos').addEventListener('click', function () {
 
     input.click();
 });
+
 
 // Function to update tool values based on selected image
 function updateToolValues(img) {
@@ -623,19 +643,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 updatePreview();
             }
         });
-
+        //function to select image
+        function selectImage(img) {
+            if (selectedImage) {
+                selectedImage.classList.remove('selected');
+            }
+            selectedImage = img;
+            selectedImage.classList.add('selected');
+        }
         // Zoom slider
         const zoomSlider = document.getElementById('zoomLevel');
         const zoomValue = document.getElementById('zoomValue');
 
+        // zoomSlider.addEventListener('input', function () {
+        //     if (selectedImage) {
+        //         const zoom = this.value / 100;
+        //         // Preserve any existing rotation
+        //         const currentRotation = selectedImage.style.transform.match(/rotate\(([^)]+)\)/) || ['', '0deg'];
+        //         selectedImage.style.transform = `scale(${zoom}) ${currentRotation[0]}`;
+        //         zoomValue.textContent = `${this.value}%`;
+        //         updatePreview();
+        //     }
+        // });
         zoomSlider.addEventListener('input', function () {
             if (selectedImage) {
                 const zoom = this.value / 100;
-                // Preserve any existing rotation
-                const currentRotation = selectedImage.style.transform.match(/rotate\(([^)]+)\)/) || ['', '0deg'];
-                selectedImage.style.transform = `scale(${zoom}) ${currentRotation[0]}`;
-                zoomValue.textContent = `${this.value}%`;
-                updatePreview();
+                selectedImage.style.transform = `scale(${zoom})`;
+                zoomValue.textContent = this.value + '%';
             }
         });
     }
