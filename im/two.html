@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Collage Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="two.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>Enhanced Collage Editor</h1>
+        <nav>
+            <ul>
+                <li><a href="#templates">Templates</a></li>
+                <li><a href="#editing">Editing Workspace</a></li>
+                <li><a href="#export">Save & Export</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section id="templates">
+        <h2>Select a Layout</h2>
+        <div class="layout-options">
+            <div class="layout-option" data-layout="grid">Grid Layout</div>
+            <div class="layout-option" data-layout="freestyle">Freestyle Layout</div>
+            <div class="layout-option" data-layout="themed">Themed Templates</div>
+        </div>
+
+        <!-- Grid Layout Options -->
+        <div class="template-container" id="grid-templates">
+            <div class="template-options">
+                <div class="template-option" data-template="grid-2x2">
+                    <div class="template-preview"
+                        style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;">
+                        <div style="background-color: #888; flex: 1;"></div>
+                        <div style="background-color: #888; flex: 1;"></div>
+                        <div style="background-color: #888; flex: 1;"></div>
+                        <div style="background-color: #888; flex: 1;"></div>
+                    </div>
+                </div>
+                <div class="template-option" data-template="grid-3x3">
+                    <div class="template-preview"
+                        style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
+                        <div style="background-color: #888; flex: 1;"></div>
+                        <div style="background-color: #888; flex: 1;"></div>
+                        <div style="background-color: #888; flex: 1;"></div>
+                        <div style="background-color: #888; flex: 1;"></div>
+                        <div style="background-color: #888; flex: 1;"></div>
+                        <div style="background-color: #888; flex: 1;"></div>
+                        <div style="background-color: #888; flex: 1;"></div>
+                        <div style="background-color: #888; flex: 1;"></div>
+                        <div style="background-color: #888; flex: 1;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Freestyle Layout Options -->
+        <div class="template-container" id="freestyle-templates">
+            <div class="template-options">
+                <div class="template-option" data-template="freestyle">
+                    <div class="template-preview">
+                        <div
+                            style="position: absolute; width: 50%; height: 50%; background-color: #888; top: 20%; left: 10%;">
+                        </div>
+                        <div
+                            style="position: absolute; width: 40%; height: 40%; background-color: #999; top: 40%; left: 50%;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Themed Templates -->
+        <div class="template-container" id="themed-templates">
+            <div class="template-options">
+                <div class="template-option" data-template="love-theme">
+                    <div class="template-preview">
+                        <div
+                            style="position: absolute; width: 45%; height: 45%; background-color: #ffcccc; top: 5%; left: 5%; border-radius: 50%;">
+                        </div>
+                        <div
+                            style="position: absolute; width: 35%; height: 35%; background-color: #ffcccc; bottom: 5%; right: 5%; border-radius: 50%;">
+                        </div>
+                        <div
+                            style="position: absolute; width: 40%; height: 40%; background-color: #ffcccc; top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 50%;">
+                        </div>
+                    </div>
+                </div>
+                <div class="template-option" data-template="polaroid">
+                    <div class="template-preview">
+                        <div
+                            style="width: 80%; height: 70%; background-color: #888; margin: 10% auto 0; border: 10px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.2);">
+                        </div>
+                        <div style="width: 100%; height: 20%; background-color: white; position: absolute; bottom: 0;">
+                        </div>
+                    </div>
+                </div>
+                <div class="template-option" data-template="travel">
+                    <div class="template-preview" style="background-color: #e0e0e0;">
+                        <div
+                            style="position: absolute; width: 40%; height: 60%; background-color: #888; top: 5%; left: 5%; transform: rotate(-5deg);">
+                        </div>
+                        <div
+                            style="position: absolute; width: 45%; height: 50%; background-color: #999; bottom: 5%; right: 5%; transform: rotate(5deg);">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="photoCount">Number of photos:</label>
+                <input type="number" id="photoCount" min="1" max="10" value="4">
+            </div>
+            <div class="control-group">
+                <label for="imageSize">Image size (px):</label>
+                <input type="number" id="imageSize" value="150" min="50" step="10">
+            </div>
+            <button type="button" id="importPhotos">Import Photos</button>
+            <button type="button" id="clearCanvas">Clear Canvas</button>
+        </div>
+    </section>
+
+    <section id="editing">
+        <h2>Editing Workspace</h2>
+        <div id="collageCanvas">
+            <div id="placeholder">Select a template and import your photos</div>
+        </div>
+    </section>
+
+    <!-- Add this after your existing editing section -->
+    <section id="toolbox">
+        <h2>Editing Tools</h2>
+        <div class="toolbox">
+            <div class="tool-group">
+                <label for="resize">Rotate:</label>
+                <input type="range" id="resize" min="0" max="360" value="0">
+                <span class="value-display" id="rotate_result">0px</span>
+            </div>
+
+            <!-- <div class="tool-group">
+            <label for="rotate">Rotate:</label>
+            <select id="rot ate">
+                <option value="0">0°</option>
+                <option value="90">90°</option>
+                <option value="180">180°</option>
+                <option value="270">270°</option>
+            </select>
+        </div> -->
+
+            <div class="tool-group">
+                <label for="brightness">Brightness:</label>
+                <input type="range" id="brightness" min="-100" max="100" value="0">
+                <span class="value-display">0</span>
+            </div>
+
+            <div class="tool-group">
+                <label for="contrast">Contrast:</label>
+                <input type="range" id="contrast" min="-100" max="100" value="0">
+                <span class="value-display">0</span>
+            </div>
+
+            <div class="tool-group">
+                <label for="border-color">Border Color:</label>
+                <input type="color" id="border-color">
+                <label for="border-width">Border Width:</label>
+                <input type="range" id="border-width" min="0" max="20" value="0">
+            </div>
+
+            <div class="tool-group">
+                <label for="stickers">Add Stickers/Emojis:</label>
+                <select id="stickers">
+                    <option value="">Select emoji</option>
+                    <option value="😊">😊 Smile</option>
+                    <option value="🌟">🌟 Star</option>
+                    <option value="❤️">❤️ Heart</option>
+                    <option value="🎉">🎉 Party</option>
+                </select>
+            </div>
+
+
+            <div class="tool-group">
+                <label for="textOverlay">Add Text:</label>
+                <input type="text" id="textOverlay" placeholder="Enter text">
+                <button type="button" id="addText">Add Text</button>
+            </div>
+
+
+
+        </div>
+    </section>
+
+    <section id="enhanced-tools">
+        <div class="controls">
+            <div class="control-group">
+                <label for="imageSize">Image Size:</label>
+                <input type="range" id="imageSize" min="50" max="500" value="200">
+                <span id="imageSizeValue">200px</span>
+            </div>
+
+            <div class="control-group">
+                <label for="zoomLevel">Zoom:</label>
+                <input type="range" id="zoomLevel" min="50" max="200" value="100">
+                <span id="zoomValue">100%</span>
+            </div>
+        </div>
+
+    </section>
+
+    <section id="previewArea" class="preview-section">
+        <h2>Real-time Preview</h2>
+        <canvas id="previewCanvas" style="width: 100%; max-width: 800px; border: 1px solid #ccc;"></canvas>
+    </section>
+
+    <section id="preview">
+        <h2>Real-Time Preview</h2>
+        <div class="preview-controls">
+            <button id="undo" disabled>Undo</button>
+            <button id="redo" disabled>Redo</button>
+        </div>
+    </section>
+
+    <section id="export">
+        <h2>Save & Export</h2>
+        <div class="export-buttons">
+            <button id="saveJPG">Save as JPEG</button>
+            <button id="savePNG">Save as PNG</button>
+            <button id="shareCollage">Share on Social Media</button>
+        </div>
+    </section>
+
+    <section id="help">
+        <h2>Help & Support</h2>
+        <div class="help-links">
+            <p><a href="#" id="viewTutorials">View Tutorials</a></p>
+            <p><a href="#" id="viewFAQ">FAQs</a></p>
+            <p><a href="#" id="contactSupport">Contact Support</a></p>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 Collage Editor App</p>
+    </footer>
+    <script src="two.js">
+    </script>
+
+</body>
+
+</html>
